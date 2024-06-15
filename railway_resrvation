@@ -7,9 +7,10 @@ have four functionalities.
 4. Print available tickets (details with summary)
 */
 #include <iostream>
-#include <vector>
+#include <queue>
 #include<map>
 #include <string>
+#include<limits>
 using namespace std;
 short confirmedBerths = 3;
 short upperBerths = 1;
@@ -17,8 +18,8 @@ short middleBerths = 1;
 short lowerBerths = 1;
 short racCounts = 1;
 short waitingCounts = 1;
-vector<int>RacIdvec(racCounts);
-vector<int>WaitingIDvec(waitingCounts);
+queue<int>RacIdvec;
+queue<int>WaitingIDvec;
 class Passenger
 {
 public:
@@ -41,17 +42,15 @@ public:
 };
 class TicketReservation
 {
-public:
     static short passengerId;
-    static short racId;
-    static short waitingId;
+public:
     void Booking(map<int,Passenger> &storage,char type)
     {
         string name;
         bool seatAllotted = false;
         string status;
         short age;
-        char gender, berth = 'N', hasChild;
+        char gender, berth = 'N';
         cout << "Enter your name:";
         cin >> name;
         cout << "Enter your age:";
@@ -68,7 +67,7 @@ public:
         {
             cout << "Enter your Berth preference(U/M/L):";
             cin >> berth;
-            while (berth != 'U' && berth != 'M' && berth != 'L' && berth != 'u' && berth != 'm' && berth != 'l')
+            while (toupper(berth) != 'U' && toupper(berth) != 'M' && toupper(berth) != 'L')
             {
                 cout << "Enter your berth in this format(U/M/L)!" << endl;
                 cout << "Enter your berth(U/M/L):";
@@ -77,7 +76,10 @@ public:
             if ( toupper(berth) == 'U')
             {
                 if(upperBerths)
+                {
                     upperBerths--;
+                    berth = 'U';
+                }
                 else 
                 {
                     cout << "upper berths are occupied!" << endl;
@@ -98,7 +100,10 @@ public:
             else if ( toupper(berth) == 'M')
             {
                 if(middleBerths)
+                {
                     middleBerths--;
+                    berth = 'U';
+                }
                 else 
                 {
                     cout << "middle berths are occupied!" << endl;
@@ -119,7 +124,10 @@ public:
             else if ( toupper(berth) == 'L')
             {
                 if(lowerBerths)
+                {
                     lowerBerths--;
+                    berth = 'L';
+                }
                 else
                 {
                     cout << "lower berths are occupied!" << endl;
@@ -140,98 +148,117 @@ public:
             confirmedBerths--;
             seatAllotted = true;
             status = "confirmed";
-            passengerId++;
         }
         else if(type == 'r')
         {
             status = "RAC";
-            RacIdvec[racId++] = ++passengerId;
+            RacIdvec.push(passengerId);
             racCounts--;
         }  
         else
         {
             status = "WaitingTickets";
-            WaitingIDvec[waitingId++] = ++passengerId;
+            WaitingIDvec.push(passengerId);
             waitingCounts--;
         }
         Passenger passenger(name, age, toupper(gender), toupper(berth), seatAllotted, passengerId,status);
-        storage[passengerId] = passenger; 
+        storage[passengerId++] = passenger; 
         cout << "Ticket booked successfully!" << endl;
         
     }
     void Cancel(map<int,Passenger> &storage)
     {
-        int cancelId;
-        cout<<"Enter your passenger Id:";
-        cin>>cancelId;
-        if(storage.find(cancelId)!=storage.end())
+        int cId;
+        while (true)
+            {
+                cout << "Enter the Passenger ID to be cancelled: ";
+                cin >> cId;
+                if (cin.fail())
+                {
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cout << "Error: Input is not an integer. Please try again.\n";
+                }
+                else
+                {
+                    break;
+                }
+            }
+        if(storage.find(cId) == storage.end())
         {
-            Passenger passenger = storage[cancelId];
-            storage.erase(cancelId);
-            if(passenger.status == "confirmed")
-            {
-                confirmedBerths++;
-                if(passenger.berth == 'L')
-                    lowerBerths++;
-                else if(passenger.berth == 'M')
-                    middleBerths++;
-                else if(passenger.berth == 'U')
-                    upperBerths++;
-                if(racId)
-                {
-                    int racPasId = RacIdvec.front();
-                    RacIdvec.erase(RacIdvec.begin());
-                    racCounts++;
-                    racId--;
-                    storage[racPasId].status = "confirmed";
-                    storage[racPasId].berth = passenger.berth;
-                    storage[racPasId].seatAllotted = true;
-                    confirmedBerths--;
-                    if(passenger.berth == 'L')
-                    lowerBerths++;
-                    else if(passenger.berth == 'M')
-                        middleBerths++;
-                    else if(passenger.berth == 'U')
-                        upperBerths++;
-                    if(waitingId)
-                    {
-                        int waitingPasId = WaitingIDvec.front();
-                        WaitingIDvec.erase(WaitingIDvec.begin());
-                        waitingCounts++;
-                        waitingId--;
-                        storage[waitingPasId].status = "RAC";
-                        racCounts--;
-                        racId++;
-                        RacIdvec.push_back(waitingPasId);
-                    }
-                }
-            }
-            else if(passenger.status == "RAC")
-            {
-                racCounts++;
-                racId--;
-                if(waitingId)
-                {
-                    int waitingPasId = WaitingIDvec.front();
-                    WaitingIDvec.erase(WaitingIDvec.begin());
-                    waitingCounts++;
-                    waitingId--;
-                    storage[waitingPasId].status = "RAC";
-                    racCounts--;
-                    racId++;
-                    RacIdvec.push_back(waitingPasId);
-                }
-            }
-            else if(passenger.status == "waitingTickets")
-            {
-                waitingCounts++;
-                waitingId--;
-                WaitingIDvec.erase(WaitingIDvec.begin());
-            }
+            cout<<"Invalid Passenger Id!"<<endl;
         }
         else
         {
-            cout<<"Invalid Passenger Id!"<<endl;
+            for (auto it = storage.begin(); it != storage.end(); it++)
+            {
+                if (it->first == cId)
+                {
+                    if ((it->second.berth) == 'L')
+                    {
+                        lowerBerths++;
+                        confirmedBerths++;
+                    }
+                    else if (it->second.berth == 'M')
+                    {
+                        middleBerths++;
+                        confirmedBerths++;
+                    }
+                    else if (it->second.berth == 'U')
+                    {
+                        upperBerths++;
+                        confirmedBerths++;
+                    }
+                    else if (it->second.status == "RAC")
+                    {
+                        racCounts++;
+                        RacIdvec.pop();
+                    }
+                    else if (it->second.status == "WaitingTickets")
+                    {
+                        waitingCounts++;
+                        WaitingIDvec.pop();
+                    }
+                    storage.erase(it->first);
+                    break;
+                }
+            }
+        }
+        if (RacIdvec.size() > 0 && (lowerBerths > 0 || upperBerths > 0 || middleBerths > 0))
+        {
+            int id = RacIdvec.front();
+            Passenger p = storage[id];
+            if (lowerBerths > 0)
+            {
+                storage[id].berth = 'L';
+                lowerBerths--;
+                confirmedBerths--;
+            }
+            else if (middleBerths > 0)
+            {
+                storage[id].berth = 'M';
+                middleBerths--;
+                confirmedBerths--;
+            }
+            else if (upperBerths > 0)
+            {
+                storage[id].berth = 'U';
+                upperBerths--;
+                confirmedBerths--;
+            }
+            RacIdvec.pop();
+            racCounts++;
+            storage[id].status = "confirmed";
+        }
+        if (WaitingIDvec.size() > 0 && racCounts > 0)
+        {
+            int id = WaitingIDvec.front();
+            Passenger p = storage[id];
+            storage[id].status = "RAC";
+            RacIdvec.push(id);
+            WaitingIDvec.pop();
+            waitingCounts++;
+            racCounts--;
         }
         
     }
@@ -250,15 +277,16 @@ public:
         bool flag = true;
         for (auto it : storage)
         {
-            Passenger passenger = it.second;  
+              
             flag = false;
             cout << "---------------------------------------------------" << endl;
-            cout << "Passenger Id:" << passenger.passengerId<< endl;
-            cout << "Name: " << passenger.name << endl;
-            cout << "Age : " << passenger.age << endl;
-            cout << "Gender :" << passenger.gender << endl;
-            cout << "Berth :" << passenger.berth << endl;
-            cout << "Ticket Status : " << passenger.status << endl;
+            cout << "Passenger Id:" << it.second.passengerId<< endl;
+            cout << "Name: " << it.second.name << endl;
+            cout << "Age : " << it.second.age << endl;
+            cout << "Gender :" << it.second.gender << endl;
+            cout << "Ticket Status : " << it.second.status << endl;
+            if(it.second.status == "confirmed")
+                cout << "Berth :" << it.second.berth << endl;
             cout << "---------------------------------------------------" << endl;
         }
         if (flag)
@@ -268,23 +296,21 @@ public:
         }
     }
 };
-short TicketReservation ::passengerId = 0;
-short TicketReservation ::racId = 0;
-short TicketReservation ::waitingId = 0;
+short TicketReservation ::passengerId = 1;
 int main()
 {
     TicketReservation ticketReservation;
     map<int,Passenger>storage;
-    vector<int> RAC;
-    vector<int> waitingTickets;
     while (true)
     {
         short choice;
+        cout<<"**************"<<endl;
         cout << "1.Book" << endl;
         cout << "2.Cancel" << endl;
         cout << "3.Print booked Tickets" << endl;
         cout << "4.Print available Tickets" << endl;
         cout << "5.Exit" << endl;
+        cout<<"**************"<<endl;
         cout << "Enter your choice:";
         cin >> choice;
         if (choice == 1)
