@@ -102,7 +102,7 @@ public:
                 if(middleBerths)
                 {
                     middleBerths--;
-                    berth = 'U';
+                    berth = 'M';
                 }
                 else 
                 {
@@ -111,7 +111,7 @@ public:
                     {
                         berth = 'U';
                         cout << "upper berth is given" << endl;
-                        middleBerths--;
+                        upperBerths--;
                     }
                     else if (lowerBerths)
                     {
